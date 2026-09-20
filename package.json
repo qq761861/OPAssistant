@@ -3,8 +3,8 @@
   "version": "1.0.6",
   "private": true,
   "scripts": {
-    "dev:h5": "cross-env NODE_ENV=development UNI_PLATFORM=h5 vue-cli-service uni-serve",
-    "build:h5": "cross-env NODE_ENV=production UNI_PLATFORM=h5 vue-cli-service uni-build"
+    "dev:h5": "cross-env NODE_ENV=development UNI_PLATFORM=h5 UNI_CLI_CONTEXT=. UNI_INPUT_DIR=. node -r ./scripts/uni-cli-patch.js ./node_modules/@vue/cli-service/bin/vue-cli-service.js uni-serve",
+    "build:h5": "cross-env NODE_ENV=production UNI_PLATFORM=h5 UNI_CLI_CONTEXT=. UNI_INPUT_DIR=. node -r ./scripts/uni-cli-patch.js ./node_modules/@vue/cli-service/bin/vue-cli-service.js uni-build"
   },
   "dependencies": {
     "@dcloudio/uni-h5": "2.0.2-5020620260917001",
