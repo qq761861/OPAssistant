@@ -1,44 +1,117 @@
 
-/*Notice:It may be modified when released*/
-const KEY = 'defaultkey'; 
-const ENCRYPTED_PREFIX = 'ENC:';
+import CryptoJS from 'crypto-js'
+
+const ENCRYPTED_PREFIX = 'ENC:'
+const KEY_STORAGE_ID = 'app_crypto_key'
+const KEY_STORAGE_SALT = 'app_crypto_salt'
 
 class Crypto {
 
-	static encrypt(text) {
-		if (!text) return '';
-		
-		let encrypted = '';
-		for (let i = 0; i < text.length; i++) {
-			encrypted += String.fromCharCode(text.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length));
+	static getMasterKey() {
+		let key = uni.getStorageSync(KEY_STORAGE_ID)
+		let salt = uni.getStorageSync(KEY_STORAGE_SALT)
+
+		if (!key || !salt) {
+			try {
+				const randomWords = CryptoJS.lib.WordArray.random(32)
+				key = randomWords.toString(CryptoJS.enc.Hex)
+				salt = CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Hex)
+				uni.setStorageSync(KEY_STORAGE_ID, key)
+				uni.setStorageSync(KEY_STORAGE_SALT, salt)
+			} catch (e) {
+				return null
+			}
 		}
-		const encoded = btoa(encrypted);
-		return ENCRYPTED_PREFIX + encoded;
+		return { key: key, salt: salt }
+	}
+
+	static deriveKey(password, salt) {
+		const saltWords = CryptoJS.enc.Hex.parse(salt)
+		return CryptoJS.PBKDF2(password, saltWords, {
+			keySize: 256 / 32,
+			iterations: 10000
+		})
+	}
+
+	static encrypt(text) {
+		if (!text) return ''
+
+		try {
+			const master = this.getMasterKey()
+			if (!master) {
+				return ''
+			}
+
+			const derivedKey = this.deriveKey(master.key, master.salt)
+
+			const iv = CryptoJS.lib.WordArray.random(16)
+
+			const encrypted = CryptoJS.AES.encrypt(text, derivedKey, {
+				iv: iv,
+				mode: CryptoJS.mode.CBC,
+				padding: CryptoJS.pad.Pkcs7
+			})
+
+			const ivHex = iv.toString(CryptoJS.enc.Hex)
+			const ciphertextHex = encrypted.ciphertext.toString(CryptoJS.enc.Hex)
+
+			return ENCRYPTED_PREFIX + ivHex + ciphertextHex
+		} catch (e) {
+			return ''
+		}
 	}
 
 	static decrypt(cipher) {
 		if (!cipher || !cipher.startsWith(ENCRYPTED_PREFIX)) {
-			return cipher; 
+			return cipher
 		}
-		
+
 		try {
-			
-			const encoded = cipher.substring(ENCRYPTED_PREFIX.length);
-			const encrypted = atob(encoded);
-			
-			let decrypted = '';
-			for (let i = 0; i < encrypted.length; i++) {
-				decrypted += String.fromCharCode(encrypted.charCodeAt(i) ^ KEY.charCodeAt(i % KEY.length));
+			const master = this.getMasterKey()
+			if (!master) {
+				return ''
 			}
-			
-			return decrypted;
+
+			const derivedKey = this.deriveKey(master.key, master.salt)
+
+			const encoded = cipher.substring(ENCRYPTED_PREFIX.length)
+
+			const ivHex = encoded.substring(0, 32)
+			const ciphertextHex = encoded.substring(32)
+
+			const iv = CryptoJS.enc.Hex.parse(ivHex)
+			const ciphertext = CryptoJS.enc.Hex.parse(ciphertextHex)
+
+			const cipherParams = CryptoJS.lib.CipherParams.create({
+				ciphertext: ciphertext
+			})
+
+			const decrypted = CryptoJS.AES.decrypt(
+				cipherParams,
+				derivedKey,
+				{
+					iv: iv,
+					mode: CryptoJS.mode.CBC,
+					padding: CryptoJS.pad.Pkcs7
+				}
+			)
+
+			return decrypted.toString(CryptoJS.enc.Utf8)
 		} catch (e) {
-			return cipher; 
+			return ''
 		}
 	}
 
 	static isEncrypted(text) {
-		return text && text.startsWith(ENCRYPTED_PREFIX);
+		return text && text.startsWith(ENCRYPTED_PREFIX)
+	}
+
+	static randomId(length = 16) {
+		try {
+			return CryptoJS.lib.WordArray.random(length).toString(CryptoJS.enc.Hex)
+		} catch (e) {
+			return Date.now().toString(36) + Math.random().toString(36).substr(2)
+		}
 	}
 }
 

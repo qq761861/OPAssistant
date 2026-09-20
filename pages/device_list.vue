@@ -407,22 +407,17 @@
 			
 	
 			onCardClickHandle(device) {
-		
+
 				uni.showLoading({
 							title: this.$t('device_list.connecting')
 						})
-				
-				DeviceManager.checkAndLoginDevice(device, (loginResult) => {
-					console.log("check and login device")
 
+				DeviceManager.checkAndLoginDevice(device, (loginResult) => {
 					if (loginResult.success) {
-						console.log("loginResult.success = " + loginResult.success)
-						console.log("loginResult.sysauth = " + loginResult.sysauth)
-						
 						const updatedDevice = { ...device, sysauth: loginResult.sysauth, online: true }
 						DeviceManager.setCurrentDevice(updatedDevice)
-			
-						
+
+
 						// 在跳转前先检查session是否有效，然后检查oaf_status
 						this.checkSessionValidity(updatedDevice)
 					} else {
@@ -437,13 +432,12 @@
 					}
 				})
 			},
-			
+
 			// 检查session是否有效
 			checkSessionValidity(device) {
 				const protocol = device.useHttps ? 'https' : 'http'
 				const formattedHost = DeviceManager.formatHostForUrl(device.ip)
 				const url = `${protocol}://${formattedHost}:${device.port}/ubus`
-				console.log("checkSessionValidity url:", url)
 				uni.request({
 					method: "POST",
 					url: url,
@@ -458,34 +452,29 @@
 					},
 					timeout: 3000,
 					success: (res) => {
-						console.log("checkSessionValidity session检查响应:", JSON.stringify(res))
-						
-				
 						if (res.statusCode === 200 && res.data && res.data.result && res.data.result[0] === 0) {
-					
+
 							uni.hideLoading()
 							uni.showToast({
 								title: this.$t('device_list.connection_success'),
 								icon: 'success',
 								duration: 1000
 							})
-							
+
 							// 异步检查oaf_status，不阻塞页面跳转
 							this.checkOafStatus(device)
-							
+
 							setTimeout(() => {
 								uni.reLaunch({
 									url: '/pages/device/home'
 								})
 							}, 500)
-							console.log("session valid, jump to home page")
-							
+
 						} else {
 							this.reLoginDevice(device)
 						}
 					},
 					fail: (err) => {
-						console.log("checkSessionValidity fail:", err)
 						// 安卓出现该接口概率性失败，但是reLogin ok，所以去掉提示
 						// 直接调用reLoginDevice，让reLoginDevice方法处理loading的隐藏
 						this.reLoginDevice(device)

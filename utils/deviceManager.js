@@ -41,7 +41,7 @@ class DeviceManager {
 	 * Generate unique device identifier
 	 */
 	static generateDeviceId() {
-		return Date.now().toString(36) + Math.random().toString(36).substr(2)
+		return Crypto.randomId(16)
 	}
 	
 	/**
@@ -66,7 +66,6 @@ class DeviceManager {
 			createTime: new Date().toISOString(),
 			password: Crypto.encrypt(device.password)
 		}
-		console.log("new device id is " + newDevice.id);
 		deviceList.push(newDevice)
 		return this.saveDeviceList(deviceList)
 	}
@@ -98,7 +97,6 @@ class DeviceManager {
 			const updatedDevice = { ...deviceList[index], ...deviceData }
 			if (deviceData.password !== undefined) {
 				updatedDevice.password = Crypto.encrypt(deviceData.password)
-				console.log("updated device password is " + updatedDevice.password);
 			}
 			deviceList[index] = updatedDevice
 			return this.saveDeviceList(deviceList)
@@ -146,7 +144,6 @@ class DeviceManager {
 		try {
 			const deviceToStore = { ...device }
 			deviceToStore.password = Crypto.encrypt(device.password)
-			console.log("set current device password is " + deviceToStore.password);
 			uni.setStorageSync(CURRENT_DEVICE_KEY, deviceToStore)
 			return true
 		} catch (e) {
@@ -207,19 +204,9 @@ class DeviceManager {
 	}
 
 	static loginDevice(device, callback) {
-		console.log(`[DeviceManager] Starting login for device: ${device.name} (${device.ip}:${device.port})`)
-		console.log(`[DeviceManager] Device info:`, {
-			name: device.name,
-			ip: device.ip,
-			port: device.port,
-			username: device.username,
-			useHttps: device.useHttps
-		})
-		
 		const protocol = device.useHttps ? 'https' : 'http'
 		const formattedHost = this.formatHostForUrl(device.ip)
 		const url = `${protocol}://${formattedHost}:${device.port}/ubus`
-		console.log(`[DeviceManager] Login request URL: ${url}`)
 		const data = {
 			jsonrpc: "2.0",
 			id: 1,
@@ -234,52 +221,39 @@ class DeviceManager {
 				}
 			]
 		}
-		
-		console.log(`[DeviceManager] Login request data:`, JSON.stringify(data, null, 2))
-		
+
 		uni.request({
 			url: url,
 			method: 'POST',
 			data: data,
 			timeout: 3000,
 			success: (res) => {
-				console.log(`[DeviceManager] Login response status code: ${res.statusCode}`)
-				console.log(`[DeviceManager] Login response data:`, JSON.stringify(res.data, null, 2))
-				
 				// Check response status code
 				if (res.statusCode === 200) {
-					console.log(`[DeviceManager] HTTP request successful, parsing login result`)
 					// Check JSON-RPC response
 					if (res.data && res.data.result && res.data.result[0] === 0) {
-						console.log(`[DeviceManager] JSON-RPC login successful, result code: ${res.data.result[0]}`)
 						// Login successful, get session
 						const session = res.data.result[1].ubus_rpc_session
-						console.log(`[DeviceManager] Session obtained: ${session}`)
-						
+
 						if (session) {
-							console.log(`[DeviceManager] Updating device status and device list`)
 							// Update sysauth in device
-							const updateResult = this.updateDeviceById(device.id, { 
+							this.updateDeviceById(device.id, {
 								sysauth: session,
-								online: true 
+								online: true
 							})
-							console.log(`[DeviceManager] Device status update result: ${updateResult}`)
-							
+
 							// Also update current device info
 							const updatedDevice = { ...device, sysauth: session, online: true }
 							this.setCurrentDevice(updatedDevice)
-							console.log(`[DeviceManager] Current device info updated`)
-							
+
 							// Call success callback
 							if (callback) {
-								console.log(`[DeviceManager] Calling success callback`)
 								callback({
 									success: true,
 									sysauth: session
 								})
 							}
 						} else {
-							console.log(`[DeviceManager] Login failed: no session obtained`)
 							// Call failure callback
 							if (callback) {
 								callback({
@@ -289,7 +263,6 @@ class DeviceManager {
 							}
 						}
 					} else {
-						console.log(`[DeviceManager] JSON-RPC login failed, result code: ${res.data?.result?.[0]}`)
 						if (callback) {
 							callback({
 								success: false,
@@ -298,7 +271,6 @@ class DeviceManager {
 						}
 					}
 				} else {
-					console.log(`[DeviceManager] HTTP request failed, status code: ${res.statusCode}`)
 					// Call failure callback
 					if (callback) {
 						callback({
@@ -309,19 +281,8 @@ class DeviceManager {
 				}
 			},
 			fail: (err) => {
-				console.error(`[DeviceManager] Login request failed:`, err)
-				console.error(`[DeviceManager] Error details:`, {
-					errMsg: err.errMsg,
-					errno: err.errno,
-					statusCode: err.statusCode
-				})
-				
-				// Handle WeChat mini-program specific errors
-				let errorMessage = 'Network error, if it\'s a mini-program please keep on the same network segment as the router' + err.errMsg
-				
 				// Call failure callback
 				if (callback) {
-					console.log(`[DeviceManager] Calling failure callback, error code: ${ERROR_CODES.NETWORK_ERROR}`)
 					callback({
 						success: false,
 						errorCode: ERROR_CODES.NETWORK_ERROR,
@@ -335,14 +296,8 @@ class DeviceManager {
 	 * Check device login status and auto login
 	 */
 	static checkAndLoginDevice(device, callback) {
-		console.log(`[DeviceManager] Checking device login status: ${device.name} (${device.ip})`)
-
 		if (device.sysauth) {
-			console.log(`[DeviceManager] Device has valid session: ${device.name}`)
-			console.log(`[DeviceManager] Session value: ${device.sysauth}`)
-			
 			if (callback) {
-				console.log(`[DeviceManager] Returning success directly, no need to re-login`)
 				callback({
 					success: true,
 					sysauth: device.sysauth
@@ -352,25 +307,15 @@ class DeviceManager {
 		}
 
 		// No valid sysauth, try to login
-		console.log(`[DeviceManager] Device has no valid session, starting login: ${device.name}`)
 		this.loginDevice(device, (loginResult) => {
-			console.log(`[DeviceManager] Login result:`, {
-				success: loginResult.success,
-				errorCode: loginResult.errorCode,
-				message: loginResult.message
-			})
-			
 			if (loginResult.success) {
-				console.log(`[DeviceManager] Login successful, updating device status`)
 				if (callback) {
 					callback(loginResult)
 				}
 			} else {
-				console.log(`[DeviceManager] Login failed, setting device offline`)
 				// Update device offline status
 				this.updateDeviceById(device.id, { online: false })
 				if (callback) {
-					console.log(`[DeviceManager] Calling failure callback, error code: ${loginResult.errorCode}`)
 					callback({
 						success: false,
 						errorCode: loginResult.errorCode || ERROR_CODES.OTHER_ERROR
