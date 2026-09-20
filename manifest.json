@@ -16,7 +16,7 @@
             "delay" : 0
         },
         "ssl" : {
-            "untrustedca" : "accept"
+            "untrustedca" : "refuse"
         },
 
         "modules" : {},
@@ -84,7 +84,6 @@
     "h5" : {
         "devServer" : {
             "port" : 8080,
-            "disableHostCheck" : true,
             "proxy" : {
                 "/ubus" : {
                     "target" : "http://192.168.1.1",

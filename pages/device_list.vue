@@ -523,18 +523,15 @@
 					// oaf_status获取成功，设置support_parental_control为1
 					const updatedDevice = { ...device, support_parental_control: 1 }
 					DeviceManager.setCurrentDevice(updatedDevice)
-					console.log('oaf_status获取成功，设置support_parental_control为1')
 				} else {
 					// oaf_status获取失败，设置support_parental_control为0
 					const updatedDevice = { ...device, support_parental_control: 0 }
 					DeviceManager.setCurrentDevice(updatedDevice)
-					console.log('oaf_status获取失败，设置support_parental_control为0')
 				}
 			} catch (error) {
 				// 请求失败或超时，设置support_parental_control为0
 				const updatedDevice = { ...device, support_parental_control: 0 }
 				DeviceManager.setCurrentDevice(updatedDevice)
-				console.log('oaf_status请求失败或超时，设置support_parental_control为0:', error.message || error)
 			}
 		},
 		

@@ -155,9 +155,6 @@ export default {
     const formattedHost = DeviceManager.formatHostForUrl(this.deviceInfo.ip)
     this.url = `${protocol}://${formattedHost}:${this.deviceInfo.port}/ubus`
     
-    console.log('API URL:', this.url)
-    console.log('Session:', this.session)
-    
     this.loadData()
   },
   onShow() {

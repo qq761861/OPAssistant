@@ -400,8 +400,6 @@ export default {
     },
     fetchDHCPv4List() {
       this.dhcpv4List = []
-      console.log('fetchDHCPv4List')
-      console.log("dhcp v4 session:", this.session)
       uni.request({
         method: 'POST',
         url: this.url,

@@ -4,6 +4,12 @@ import DeviceManager from './deviceManager.js'
 
 class DeviceApi {
 
+	static buildUrl(device, path) {
+		const protocol = device.useHttps ? 'https' : 'http'
+		const formattedHost = DeviceManager.formatHostForUrl(device.ip)
+		return `${protocol}://${formattedHost}:${device.port}${path}`
+	}
+
 	static async getSystemStatus() {
 		try {
 			const device = GlobalState.getCurrentDeviceFull()
@@ -11,8 +17,7 @@ class DeviceApi {
 				throw new Error('device not found')
 			}
 			
-			const formattedHost = DeviceManager.formatHostForUrl(device.ip)
-			const url = `http://${formattedHost}:${device.port}/cgi-bin/luci/admin/status/overview`
+			const url = this.buildUrl(device, '/cgi-bin/luci/admin/status/overview')
 			const response = await DeviceManager.requestWithAuth(device, url)
 			
 			return response
@@ -29,8 +34,7 @@ class DeviceApi {
 				throw new Error('device not found')
 			}
 			
-			const formattedHost = DeviceManager.formatHostForUrl(device.ip)
-			const url = `http://${formattedHost}:${device.port}/cgi-bin/luci/admin/network/network`
+			const url = this.buildUrl(device, '/cgi-bin/luci/admin/network/network')
 			const response = await DeviceManager.requestWithAuth(device, url)
 			
 			return response
@@ -46,8 +50,7 @@ class DeviceApi {
 				throw new Error('device not found')
 			}
 			
-			const formattedHost = DeviceManager.formatHostForUrl(device.ip)
-			const url = `http://${formattedHost}:${device.port}/cgi-bin/luci/admin/status/overview`
+			const url = this.buildUrl(device, '/cgi-bin/luci/admin/status/overview')
 			const response = await DeviceManager.requestWithAuth(device, url)
 			
 			return response
@@ -64,8 +67,7 @@ class DeviceApi {
 				throw new Error('device not found')
 			}
 			
-			const formattedHost = DeviceManager.formatHostForUrl(device.ip)
-			const url = `http://${formattedHost}:${device.port}/cgi-bin/luci/admin/system/admin`
+			const url = this.buildUrl(device, '/cgi-bin/luci/admin/system/admin')
 			const response = await DeviceManager.requestWithAuth(device, url)
 			
 			return response
@@ -82,8 +84,7 @@ class DeviceApi {
 				throw new Error('device not found')
 			}
 			
-			const formattedHost = DeviceManager.formatHostForUrl(device.ip)
-			const url = `http://${formattedHost}:${device.port}${path}`
+			const url = this.buildUrl(device, path)
 			const response = await DeviceManager.requestWithAuth(device, url, options)
 			
 			return response

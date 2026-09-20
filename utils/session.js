@@ -1,3 +1,5 @@
+import Crypto from './crypto.js'
+
 class SessionManager {
 	constructor() {
 		this.sessionId = null
@@ -8,7 +10,7 @@ class SessionManager {
 	initSession() {
 		const savedSession = uni.getStorageSync(this.sessionKey)
 		if (savedSession) {
-			this.sessionId = savedSession
+			this.sessionId = Crypto.decrypt(savedSession)
 		} else {
 			this.sessionId = ''
 		}
@@ -20,7 +22,7 @@ class SessionManager {
 
 	setSession(sessionId) {
 		this.sessionId = sessionId
-		uni.setStorageSync(this.sessionKey, sessionId)
+		uni.setStorageSync(this.sessionKey, Crypto.encrypt(sessionId))
 	}
 
 
