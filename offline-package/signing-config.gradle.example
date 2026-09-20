@@ -1,0 +1,47 @@
+// ============================================================
+// DCloud Android 离线打包 - 签名配置示例
+// 把本文件内容合并进宿主工程 app/build.gradle 的 android { } 块。
+// 示例中的密码/别名/文件名请替换为你自己的。
+// ============================================================
+
+// 1) 先生成签名证书（命令行执行一次即可，keystore 请妥善保管、不要提交到仓库）：
+//
+//   keytool -genkeypair -v \
+//     -keystore opassistant-release.keystore \
+//     -alias opassistant \
+//     -keyalg RSA -keysize 2048 -validity 36500
+//
+// 提示：validity 36500 约等于 100 年，尽量长，避免证书过期后无法覆盖安装升级。
+
+android {
+    // 建议把敏感信息放到 gradle.properties（并加入 .gitignore），此处仅作演示
+    // 例如：OPASSISTANT_STORE_PASSWORD=xxxx
+    signingConfigs {
+        release {
+            storeFile file("../opassistant-release.keystore")   // keystore 路径
+            storePassword "你的keystore密码"                     // storePassword
+            keyAlias "opassistant"                              // keyAlias
+            keyPassword "你的key密码"                            // keyPassword
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            // DCloud 离线打包不建议开启混淆，除非确认过 proguard 规则
+        }
+        debug {
+            // 调试也可复用 release 签名，避免 Android 11+ 因签名不一致无法覆盖安装
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+// 2) 打包命令：
+//   ./gradlew clean assembleRelease
+// 产物路径：
+//   app/build/outputs/apk/release/app-release.apk
+//
+// 3) 校验签名（可选）：
+//   apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
